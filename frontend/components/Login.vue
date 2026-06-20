@@ -3,25 +3,22 @@
         <div class="card p-2">
             <div class="card-body">
                 <div class="row mb-4">
-                    <div class="col-sm">
-                        <h2
-                            v-if="hideProductName"
-                            class="card-title text-center"
+                    <div class="col-sm text-center">
+                        <img
+                            :src="mETaLcastLogo"
+                            :title="$gettext('Welcome to mETaLcast')"
+                            alt="mETaLcast"
+                            class="img-fluid mb-2"
+                            style="max-width: 280px;"
                         >
-                            {{ $gettext('Welcome!') }}
-                        </h2>
-                        <h2
-                            v-else
-                            class="card-title text-center"
-                        >
-                            {{ $gettext('Welcome to AzuraCast!') }}
-                        </h2>
-                        <h3
+                        <br/>
+                        <span
                             v-if="instanceName"
-                            class="card-subtitle text-center text-muted"
+                            class="badge text-bg-primary"
+                            style="font-size: 0.5rem;"
                         >
                             {{ instanceName }}
-                        </h3>
+                        </span>
                     </div>
                 </div>
 
@@ -141,6 +138,7 @@
 
 <script setup lang="ts">
 import { nextTick, onMounted, ref, useTemplateRef } from "vue";
+import mETaLcastLogo from "~/img/mETaLcast.svg";
 import useWebAuthn, {
     ProcessedValidateResponse,
 } from "~/functions/useWebAuthn.ts";

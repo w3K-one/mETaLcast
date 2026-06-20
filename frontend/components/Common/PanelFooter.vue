@@ -2,19 +2,19 @@
     <footer id="footer">
         {{ $gettext('Powered by') }}
         <a
-            href="https://www.azuracast.com/"
+            href="https://w3K.dev/"
             target="_blank"
-        >AzuraCast</a>
+        >w3K</a>
         &bull;
         <span v-html="version"/>
         &bull;
         <span v-html="platform"/><br>
-        {{ $gettext('Like our software?') }}
+        {{ $gettext('Forked from an amazing project you need to support:') }}
         <a
             href="https://donate.azuracast.com/"
             target="_blank"
         >
-            {{ $gettext('Donate to support AzuraCast!') }}
+            {{ $gettext('AzuraCast!') }}
         </a>
     </footer>
 </template>

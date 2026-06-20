@@ -1,0 +1,238 @@
+name: w3K—Build—Em-All
+# w3K LLC multi-arch Docker build for mETaLcast.
+# Completely separate from the upstream default.yml workflow.
+# Publishes to:
+#   - w3kllc/metalcast     (Docker Hub)
+#   - ghcr.io/w3k-one/metalcast (GitHub Container Registry)
+#
+# Required secret: DOCKERHUB_TOKEN (Docker Hub access token for w3kllc account)
+# GITHUB_TOKEN is used automatically for GHCR (no extra secret needed).
+
+on:
+  push:
+    paths-ignore:
+      - '*.md'
+      - 'patches/**'
+      - 'w3K-assets/**'
+    branches:
+      - main
+      - stable
+      - 'dev-*'
+    tags:
+      - '*'
+  schedule:
+    - cron: '0 3 * * 0' # Weekly on Sundays at 03:00 (offset from upstream)
+  workflow_dispatch:
+    inputs:
+      no_cache:
+        description: 'Build without using cached Docker layers'
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  prepare:
+    name: Prepare Codebase
+    runs-on: ubuntu-latest
+    env:
+      APPLICATION_ENV: testing
+      NODE_ENV: production
+    steps:
+      - uses: actions/checkout@master
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: intl, xdebug
+          tools: composer:v2
+
+      - name: Cache PHP dependencies
+        uses: actions/cache@v5
+        with:
+          path: vendor
+          key: ${{ runner.OS }}-build-${{ hashFiles('composer.lock') }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "lts/jod"
+          cache: "npm"
+
+      - name: Set console permissions and clear static assets
+        run: |
+          rm -rf web/static/vite_dist
+          rm -rf translations/*.UTF-8
+          chmod a+x backend/bin/*
+
+      - name: Run Composer install
+        run: composer install --no-interaction --ignore-platform-reqs
+
+      - name: Generate translations and build static assets
+        run: |
+          npm ci --include=dev
+          backend/bin/console locale:generate
+          backend/bin/console locale:import
+          npm run build
+
+      - name: Build OpenAPI Docs
+        run: backend/bin/console azuracast:api:docs
+
+      - name: Write .gitinfo File
+        run: |
+          bash util/write_git_info.sh
+          chmod 777 .gitinfo
+
+      - name: Upload built static assets and translations
+        uses: actions/upload-artifact@v7
+        with:
+          name: w3K-assets
+          if-no-files-found: error
+          include-hidden-files: true
+          path: |
+            .gitinfo
+            translations
+            web/static/vite_dist
+            web/static/api/openapi.yml
+
+  build:
+    name: Build (${{ matrix.tag_suffix }})
+    needs: prepare
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            tag_suffix: amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            tag_suffix: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@master
+
+      - name: Download built static assets
+        uses: actions/download-artifact@v8
+        with:
+          name: w3K-assets
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: w3kllc
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push platform image
+        continue-on-error: true
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          push: true
+          no-cache: ${{ github.event_name == 'workflow_dispatch' && inputs.no_cache }}
+          tags: |
+            w3kllc/metalcast:${{ github.sha }}-${{ matrix.tag_suffix }}
+            ghcr.io/w3k-one/metalcast:${{ github.sha }}-${{ matrix.tag_suffix }}
+          cache-from: type=gha,scope=${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
+
+  publish:
+    name: Publish Multi-Arch Manifest
+    needs: build
+    permissions:
+      contents: read
+      packages: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: w3kllc
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate tags
+        id: tags
+        env:
+          SHA: ${{ github.sha }}
+          REF: ${{ github.ref }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          DHUB_SOURCES="w3kllc/metalcast:${SHA}-amd64 w3kllc/metalcast:${SHA}-arm64"
+          GHCR_SOURCES="ghcr.io/w3k-one/metalcast:${SHA}-amd64 ghcr.io/w3k-one/metalcast:${SHA}-arm64"
+
+          DHUB_TAGS="w3kllc/metalcast:${SHA}"
+          GHCR_TAGS="ghcr.io/w3k-one/metalcast:${SHA}"
+
+          if [[ "$REF" == "refs/heads/${DEFAULT_BRANCH}" ]]; then
+            DHUB_TAGS="${DHUB_TAGS} w3kllc/metalcast:latest w3kllc/metalcast:rolling"
+            GHCR_TAGS="${GHCR_TAGS} ghcr.io/w3k-one/metalcast:latest ghcr.io/w3k-one/metalcast:rolling"
+          fi
+
+          if [[ "$REF" == refs/tags/* ]]; then
+            VERSION="${REF#refs/tags/}"
+            DHUB_TAGS="${DHUB_TAGS} w3kllc/metalcast:${VERSION}"
+            GHCR_TAGS="${GHCR_TAGS} ghcr.io/w3k-one/metalcast:${VERSION}"
+          fi
+
+          if [[ "$REF" == refs/heads/* ]]; then
+            BRANCH="${REF#refs/heads/}"
+            DHUB_TAGS="${DHUB_TAGS} w3kllc/metalcast:${BRANCH}"
+            GHCR_TAGS="${GHCR_TAGS} ghcr.io/w3k-one/metalcast:${BRANCH}"
+          fi
+
+          echo "dhub_sources=${DHUB_SOURCES}" >> "$GITHUB_OUTPUT"
+          echo "ghcr_sources=${GHCR_SOURCES}" >> "$GITHUB_OUTPUT"
+          echo "dhub_tags=${DHUB_TAGS}" >> "$GITHUB_OUTPUT"
+          echo "ghcr_tags=${GHCR_TAGS}" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push Docker Hub manifest
+        continue-on-error: true
+        env:
+          TAGS: ${{ steps.tags.outputs.dhub_tags }}
+          SOURCES: ${{ steps.tags.outputs.dhub_sources }}
+        run: |
+          TAG_ARGS=$(echo "$TAGS" | tr ' ' '\n' | sed 's/^/-t /' | tr '\n' ' ')
+          docker buildx imagetools create $TAG_ARGS $SOURCES
+
+      - name: Create and push GHCR manifest
+        continue-on-error: true
+        env:
+          TAGS: ${{ steps.tags.outputs.ghcr_tags }}
+          SOURCES: ${{ steps.tags.outputs.ghcr_sources }}
+        run: |
+          TAG_ARGS=$(echo "$TAGS" | tr ' ' '\n' | sed 's/^/-t /' | tr '\n' ' ')
+          docker buildx imagetools create $TAG_ARGS $SOURCES
+
+      - name: Inspect final manifests
+        continue-on-error: true
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          docker buildx imagetools inspect "w3kllc/metalcast:${SHA}"

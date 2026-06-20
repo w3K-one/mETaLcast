@@ -32,10 +32,10 @@ final class DonateAdvisorCheck
         $event->addNotification(
             new Notification(
                 id: 'notification-donation',
-                title: __('AzuraCast is free and open-source software.'),
+                title: __('Support AzuraCast — the project mETaLcast is built on.'),
                 body: __(
-                    'If you are enjoying AzuraCast, please consider donating to support our work. We depend ' .
-                    'on donations to build new features, fix bugs, and keep AzuraCast modern, accessible and free.',
+                    'mETaLcast is a fork of AzuraCast. If you find it useful, please consider donating to ' .
+                    'the AzuraCast project to help keep the upstream modern, accessible and free.',
                 ),
                 type: FlashLevels::Info,
                 actionLabel: __('Donate to AzuraCast'),

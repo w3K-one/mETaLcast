@@ -23,8 +23,12 @@
             class="navbar-brand ms-0 me-auto"
             :to="{ name: 'dashboard' }"
         >
-            azura<strong>cast</strong>
-            <small v-if="instanceName">{{ instanceName }}</small>
+            <img
+                :src="mETaLcastLogo"
+                :title="instanceName || 'mETaLcast'"
+                alt="mETaLcast"
+                style="height: 32px;"
+            >
         </router-link>
 
         <div id="radio-player-controls">
@@ -138,6 +142,7 @@
 
 <script setup lang="ts">
 import { useTemplateRef } from "vue";
+import mETaLcastLogo from "~/img/mETaLcast.svg";
 import Lightbox from "~/components/Common/Lightbox.vue";
 import InlinePlayer from "~/components/InlinePlayer.vue";
 import { GlobalPermissions } from "~/entities/ApiInterfaces.ts";

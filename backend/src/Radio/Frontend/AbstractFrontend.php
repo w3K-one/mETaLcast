@@ -15,6 +15,7 @@ use App\Radio\Configuration;
 use App\Xml\Reader;
 use Exception;
 use GuzzleHttp\Client;
+use GuzzleHttp\Psr7\Uri;
 use InvalidArgumentException;
 use NowPlaying\AdapterFactory;
 use NowPlaying\Result\Result;
@@ -84,7 +85,15 @@ abstract class AbstractFrontend extends AbstractLocalAdapter
         $useRadioProxy = $this->readSettings()->use_radio_proxy;
 
         if ($useRadioProxy || !$this->environment->isProduction()) {
-            // Web proxy support.
+            // When a custom domain is set, serve the stream at {custom_domain}/listen.
+            if (!empty($station->custom_domain)) {
+                return (new Uri())
+                    ->withScheme($baseUrl->getScheme())
+                    ->withHost($station->custom_domain)
+                    ->withPath('/listen');
+            }
+
+            // Default web proxy: {base_url}/listen/{station_slug}
             return $baseUrl
                 ->withPath($baseUrl->getPath() . CustomUrls::getListenUrl($station));
         }

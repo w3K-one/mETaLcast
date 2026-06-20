@@ -85,7 +85,6 @@ final readonly class PodcastFeedAction implements SingleActionInterface
                         ];
                 }
             )->getValues(),
-            'itunes:type' => 'serial',
             'atom:link' => [
                 '@rel' => 'self',
                 '@type' => 'application/rss+xml',

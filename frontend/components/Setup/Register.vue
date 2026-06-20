@@ -7,18 +7,14 @@
         >
             <div class="card-body p-4">
                 <div class="row mb-2">
-                    <div class="col-sm">
-                        <h2
-                            id="hdr_first_time_setup"
-                            class="card-title mb-0 text-center"
+                    <div class="col-sm text-center">
+                        <img
+                            :src="mETaLcastLogo"
+                            :title="$gettext('mETaLcast First-Time Setup')"
+                            alt="mETaLcast"
+                            class="img-fluid mb-2"
+                            style="max-width: 280px;"
                         >
-                            {{ $gettext('AzuraCast First-Time Setup') }}
-                        </h2>
-                        <h3 class="text-center">
-                            <small class="text-muted">
-                                {{ $gettext('Welcome to AzuraCast!') }}
-                            </small>
-                        </h3>
                     </div>
                 </div>
 
@@ -100,6 +96,7 @@
 <script setup lang="ts">
 import { email, required } from "@regle/rules";
 import { reactive } from "vue";
+import mETaLcastLogo from "~/img/mETaLcast.svg";
 import FormGroupField from "~/components/Form/FormGroupField.vue";
 import { isValidPassword, useAppRegle } from "~/vendor/regle.ts";
 import IconIcEmail from "~icons/ic/baseline-email";

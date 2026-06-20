@@ -38,7 +38,7 @@
                 :field="r$.url"
                 input-type="url"
                 :label="$gettext('Web Site URL')"
-                :description="$gettext('Note: This should be the public-facing homepage of the radio station, not the AzuraCast URL. It will be included in broadcast details.')"
+                :description="$gettext('Note: This should be the public-facing homepage of the radio station, not the mETaLcast URL. It will be included in broadcast details.')"
             />
 
             <div class="col-md-6">
@@ -62,6 +62,20 @@
                         <template #description>
                             {{
                                 $gettext('Optionally specify a short URL-friendly name, such as "my_station_name", that will be used in this station\'s URLs. Leave this field blank to automatically create one based on the station name.')
+                            }}
+                        </template>
+                    </form-group-field>
+
+                    <form-group-field
+                        id="edit_form_custom_domain"
+                        class="col-md-12"
+                        :field="r$.custom_domain"
+                        advanced
+                        :label="$gettext('Custom Public Page Domain')"
+                    >
+                        <template #description>
+                            {{
+                                $gettext('Point a domain directly at this station\'s public page (e.g. "metalradio.rocks"). mETaLcast will serve the station player at the root of that domain. Leave blank to use the default /public/{url-stub} path.')
                             }}
                         </template>
                     </form-group-field>
