@@ -1,0 +1,26 @@
+From 5ef557e8bd083bdd2b1da775f89c090deba5a3b0 Mon Sep 17 00:00:00 2001
+From: w3K <i@w3K.co>
+Date: Mon, 6 Jul 2026 01:44:01 -0400
+Subject: [PATCH 3/3] ci: bump actions/cache from 5 to 6 in w3K-publish.yml
+ (ports upstream #8515)
+
+---
+ .github/workflows/w3K-publish.yml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/.github/workflows/w3K-publish.yml b/.github/workflows/w3K-publish.yml
+index f2b5dc412..267610ed4 100644
+--- a/.github/workflows/w3K-publish.yml
++++ b/.github/workflows/w3K-publish.yml
+@@ -51,7 +51,7 @@ jobs:
+           tools: composer:v2
+ 
+       - name: Cache PHP dependencies
+-        uses: actions/cache@v5
++        uses: actions/cache@v6
+         with:
+           path: vendor
+           key: ${{ runner.OS }}-build-${{ hashFiles('composer.lock') }}
+-- 
+2.50.1 (Apple Git-155)
+
